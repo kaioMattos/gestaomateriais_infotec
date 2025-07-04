@@ -33,7 +33,7 @@ import {
 import { Layout } from "@/components/layout"
 
 // Função simples para gerar dados de teste
-function createMaterial(id: number) {
+function createMaterial(id) {
   const categories = ["Cimento", "Aço", "Madeira", "Cerâmica", "Vidro", "Plástico"]
   const statuses = ["approved", "rejected", "pending"]
 
@@ -62,32 +62,32 @@ export default function Dashboard() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
 
   // Função simples para mudar página
-  const changePage = (newPage: number) => {
+  const changePage = (newPage) => {
     setPage(newPage)
   }
 
   // Função simples para mudar itens por página
-  const changeRowsPerPage = (newRowsPerPage: number) => {
+  const changeRowsPerPage = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage)
     setPage(0)
   }
 
   // Função simples para obter cor do status
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     if (status === "approved") return "success"
     if (status === "rejected") return "error"
     return "warning"
   }
 
   // Função simples para obter texto do status
-  const getStatusText = (status: string) => {
+  const getStatusText = (status) => {
     if (status === "approved") return "Aprovado"
     if (status === "rejected") return "Rejeitado"
     return "Pendente"
   }
 
   // Função simples para obter ícone do status
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status) => {
     if (status === "approved") return <CheckCircle />
     if (status === "rejected") return <Cancel />
     return <Pending />
@@ -114,7 +114,7 @@ export default function Dashboard() {
   const currentMaterials = materials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   // Componente simples para card de indicador
-  const IndicatorCard = ({ title, icon, approved, rejected, pending, total, color }: any) => (
+  const IndicatorCard = ({ title, icon, approved, rejected, pending, total, color }) => (
     <Card sx={{ height: "100%" }}>
       <CardContent>
         <Box display="flex" alignItems="center" mb={2}>

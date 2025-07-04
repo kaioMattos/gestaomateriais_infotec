@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import {
   Box,
@@ -77,29 +75,29 @@ const technicalMaterials = Array.from({ length: 2500 }, (_, i) => ({
 export default function InformacoesTecnicas() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
-  const [selectedMaterial, setSelectedMaterial] = useState<any>(null)
+  const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [proposedValues, setProposedValues] = useState<any>({})
-  const [attachments, setAttachments] = useState<any>({})
-  const [agreements, setAgreements] = useState<any>({})
+  const [proposedValues, setProposedValues] = useState({})
+  const [attachments, setAttachments] = useState({})
+  const [agreements, setAgreements] = useState({})
 
   // Estados para modal de anexos
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false)
   const [currentCharacteristic, setCurrentCharacteristic] = useState("")
   const [replicationModalOpen, setReplicationModalOpen] = useState(false)
-  const [selectedFileForReplication, setSelectedFileForReplication] = useState<any>(null)
-  const [characteristicsForReplication, setCharacteristicsForReplication] = useState<string[]>([])
+  const [selectedFileForReplication, setSelectedFileForReplication] = useState(null)
+  const [characteristicsForReplication, setCharacteristicsForReplication] = useState([])
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (event, newPage) => {
     setPage(newPage)
   }
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(Number.parseInt(event.target.value, 10))
     setPage(0)
   }
 
-  const handleViewDetails = (material: any) => {
+  const handleViewDetails = (material) => {
     setSelectedMaterial(material)
     setProposedValues({})
     setAttachments({})
@@ -107,19 +105,19 @@ export default function InformacoesTecnicas() {
     setDialogOpen(true)
   }
 
-  const handleProposedValueChange = (characteristic: string, value: string) => {
+  const handleProposedValueChange = (characteristic, value) => {
     setProposedValues((prev) => ({
       ...prev,
       [characteristic]: value,
     }))
   }
 
-  const handleOpenAttachmentModal = (characteristic: string) => {
+  const handleOpenAttachmentModal = (characteristic) => {
     setCurrentCharacteristic(characteristic)
     setAttachmentModalOpen(true)
   }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event) => {
     const files = Array.from(event.target.files || [])
     if (files.length > 0) {
       const newFiles = files.map((file) => ({
@@ -136,7 +134,7 @@ export default function InformacoesTecnicas() {
     setAttachmentModalOpen(false)
   }
 
-  const handleUseExistingFile = (file: any, sourceCharacteristic: string) => {
+  const handleUseExistingFile = (file, sourceCharacteristic) => {
     const newFile = {
       ...file,
       id: Date.now() + Math.random(), // Novo ID para evitar conflitos
@@ -149,14 +147,14 @@ export default function InformacoesTecnicas() {
     setAttachmentModalOpen(false)
   }
 
-  const handleRemoveAttachment = (characteristic: string, fileId: number) => {
+  const handleRemoveAttachment = (characteristic, fileId) => {
     setAttachments((prev) => ({
       ...prev,
-      [characteristic]: prev[characteristic]?.filter((file: any) => file.id !== fileId) || [],
+      [characteristic]: prev[characteristic]?.filter((file) => file.id !== fileId) || [],
     }))
   }
 
-  const handleAgree = (characteristic: string) => {
+  const handleAgree = (characteristic) => {
     setAgreements((prev) => ({
       ...prev,
       [characteristic]: "agree",
@@ -174,21 +172,21 @@ export default function InformacoesTecnicas() {
     }
   }
 
-  const handleDisagree = (characteristic: string) => {
+  const handleDisagree = (characteristic) => {
     setAgreements((prev) => ({
       ...prev,
       [characteristic]: "disagree",
     }))
   }
 
-  const handleOpenReplicationModal = (file: any, sourceCharacteristic: string) => {
+  const handleOpenReplicationModal = (file, sourceCharacteristic) => {
     setSelectedFileForReplication({ ...file, sourceCharacteristic })
 
     // Encontrar características que têm propostas mas não têm este arquivo
     const characteristicsWithProposals = Object.keys(proposedValues).filter((char) => proposedValues[char])
     const characteristicsWithoutThisFile = characteristicsWithProposals.filter((char) => {
       const charFiles = attachments[char] || []
-      return !charFiles.some((f: any) => f.name === file.name)
+      return !charFiles.some((f) => f.name === file.name)
     })
 
     setCharacteristicsForReplication(characteristicsWithoutThisFile)
@@ -232,10 +230,10 @@ export default function InformacoesTecnicas() {
 
   // Obter todos os arquivos existentes
   const getAllExistingFiles = () => {
-    const allFiles: any[] = []
+    const allFiles = []
     Object.keys(attachments).forEach((characteristic) => {
       if (attachments[characteristic]) {
-        attachments[characteristic].forEach((file: any) => {
+        attachments[characteristic].forEach((file) => {
           allFiles.push({ ...file, characteristic })
         })
       }
@@ -245,7 +243,7 @@ export default function InformacoesTecnicas() {
 
   const paginatedMaterials = technicalMaterials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "approved":
         return "success"
@@ -258,7 +256,7 @@ export default function InformacoesTecnicas() {
     }
   }
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status) => {
     switch (status) {
       case "approved":
         return "Aprovado"
@@ -338,7 +336,7 @@ export default function InformacoesTecnicas() {
                       <TableCell align="center">
                         <Chip
                           label={getStatusText(material.status)}
-                          color={getStatusColor(material.status) as any}
+                          color={getStatusColor(material.status)}
                           size="small"
                         />
                       </TableCell>
@@ -386,7 +384,7 @@ export default function InformacoesTecnicas() {
               </div>
               <Chip
                 label={getStatusText(selectedMaterial?.status)}
-                color={getStatusColor(selectedMaterial?.status) as any}
+                color={getStatusColor(selectedMaterial?.status)}
                 size="large"
               />
             </Box>
@@ -470,7 +468,7 @@ export default function InformacoesTecnicas() {
                   </Typography>
 
                   <Grid container spacing={3}>
-                    {selectedMaterial.caracteristicas.map((char: any, index: number) => {
+                    {selectedMaterial.caracteristicas.map((char, index) => {
                       const agreement = agreements[char.nome]
                       const hasProposal = proposedValues[char.nome]
                       const hasAttachment = attachments[char.nome]?.length > 0
@@ -623,7 +621,7 @@ export default function InformacoesTecnicas() {
                                       {/* Lista de anexos desta característica */}
                                       {hasAttachment && (
                                         <Box sx={{ mt: 1 }}>
-                                          {attachments[char.nome].map((file: any) => (
+                                          {attachments[char.nome].map((file) => (
                                             <Box
                                               key={file.id}
                                               sx={{
@@ -865,7 +863,7 @@ export default function InformacoesTecnicas() {
                   .filter((char) => proposedValues[char])
                   .map((characteristic) => {
                     const hasThisFile = attachments[characteristic]?.some(
-                      (f: any) => f.name === selectedFileForReplication?.name,
+                      (f) => f.name === selectedFileForReplication?.name,
                     )
                     if (hasThisFile) return null
 

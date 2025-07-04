@@ -1,6 +1,5 @@
 "use client"
 
-import type React from "react"
 import { useState } from "react"
 import {
   AppBar,
@@ -29,18 +28,14 @@ import {
 } from "@mui/icons-material"
 import { useRouter, usePathname } from "next/navigation"
 
-interface LayoutProps {
-  children: React.ReactNode
-}
-
-export function Layout({ children }: LayoutProps) {
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-  const [profileAnchor, setProfileAnchor] = useState<null | HTMLElement>(null)
+export function Layout({ children }) {
+  const [menuAnchor, setMenuAnchor] = useState(null)
+  const [profileAnchor, setProfileAnchor] = useState(null)
   const router = useRouter()
   const pathname = usePathname()
 
   // Abrir menu hambúrguer
-  const openMenu = (event: React.MouseEvent<HTMLElement>) => {
+  const openMenu = (event) => {
     setMenuAnchor(event.currentTarget)
   }
 
@@ -50,7 +45,7 @@ export function Layout({ children }: LayoutProps) {
   }
 
   // Abrir menu do perfil
-  const openProfile = (event: React.MouseEvent<HTMLElement>) => {
+  const openProfile = (event) => {
     setProfileAnchor(event.currentTarget)
   }
 
@@ -60,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
   }
 
   // Navegar para página
-  const navigateTo = (path: string) => {
+  const navigateTo = (path) => {
     router.push(path)
     closeMenu()
   }
