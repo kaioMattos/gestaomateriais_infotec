@@ -6,16 +6,8 @@ import {
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   TablePagination,
   IconButton,
-  Tooltip,
   Chip,
   Button,
   Dialog,
@@ -32,20 +24,23 @@ import {
   ListItemText,
   ListItemIcon,
   Checkbox,
+  ListItemButton,
+  Divider,
+  Avatar,
 } from "@mui/material"
 import {
-  Visibility,
   CheckCircle,
   CloudUpload,
   AttachFile,
   Delete,
   ThumbUp,
   ThumbDown,
-  Description,
   Warning,
-  FileCopy,
   FolderOpen,
   ContentCopy,
+  Search,
+  Engineering,
+  Assignment,
 } from "@mui/icons-material"
 import { Layout } from "@/components/layout"
 
@@ -76,10 +71,11 @@ export default function InformacoesTecnicas() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [selectedMaterial, setSelectedMaterial] = useState(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [proposedValues, setProposedValues] = useState({})
   const [attachments, setAttachments] = useState({})
   const [agreements, setAgreements] = useState({})
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
 
   // Estados para modal de anexos
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false)
@@ -97,12 +93,12 @@ export default function InformacoesTecnicas() {
     setPage(0)
   }
 
-  const handleViewDetails = (material) => {
+  const handleSelectMaterial = (material) => {
     setSelectedMaterial(material)
+    // Resetar estados quando selecionar novo material
     setProposedValues({})
     setAttachments({})
     setAgreements({})
-    setDialogOpen(true)
   }
 
   const handleProposedValueChange = (characteristic, value) => {
@@ -137,7 +133,7 @@ export default function InformacoesTecnicas() {
   const handleUseExistingFile = (file, sourceCharacteristic) => {
     const newFile = {
       ...file,
-      id: Date.now() + Math.random(), // Novo ID para evitar conflitos
+      id: Date.now() + Math.random(),
     }
 
     setAttachments((prev) => ({
@@ -182,7 +178,6 @@ export default function InformacoesTecnicas() {
   const handleOpenReplicationModal = (file, sourceCharacteristic) => {
     setSelectedFileForReplication({ ...file, sourceCharacteristic })
 
-    // Encontrar características que têm propostas mas não têm este arquivo
     const characteristicsWithProposals = Object.keys(proposedValues).filter((char) => proposedValues[char])
     const characteristicsWithoutThisFile = characteristicsWithProposals.filter((char) => {
       const charFiles = attachments[char] || []
@@ -215,15 +210,33 @@ export default function InformacoesTecnicas() {
 
   const handleSubmitProposal = () => {
     console.log("Enviando proposta:", { proposedValues, attachments, agreements })
-    setDialogOpen(false)
+    alert("Avaliação enviada com sucesso!")
+    // Resetar estados após envio
+    setProposedValues({})
+    setAttachments({})
+    setAgreements({})
   }
+
+  // Filtrar materiais
+  const filteredMaterials = technicalMaterials.filter((material) => {
+    const matchesSearch =
+      material.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = statusFilter === "all" || material.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+
+  const paginatedMaterials = filteredMaterials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   // Verificar se todas as características foram validadas
   const totalCharacteristics = selectedMaterial?.caracteristicas?.length || 0
   const validatedCharacteristics = Object.keys(agreements).length
   const allValidated = validatedCharacteristics === totalCharacteristics
 
-  // Características que precisam de anexo (têm proposta mas não têm anexo)
+  // Características que precisam de anexo
   const characteristicsNeedingAttachment = Object.keys(proposedValues).filter(
     (char) => proposedValues[char] && (!attachments[char] || attachments[char].length === 0),
   )
@@ -240,8 +253,6 @@ export default function InformacoesTecnicas() {
     })
     return allFiles
   }
-
-  const paginatedMaterials = technicalMaterials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -269,217 +280,268 @@ export default function InformacoesTecnicas() {
     }
   }
 
+  const getCategoryIcon = (categoria) => {
+    switch (categoria) {
+      case "Cimento":
+        return "🏗️"
+      case "Aço":
+        return "⚙️"
+      case "Madeira":
+        return "🌳"
+      case "Cerâmica":
+        return "🏺"
+      default:
+        return "📦"
+    }
+  }
+
   return (
     <Layout>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-          Informações Técnicas
-        </Typography>
+      <Box sx={{ p: 2, height: "calc(100vh - 80px)", display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+            Informações Técnicas
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Revise e aprove as informações técnicas dos materiais
+          </Typography>
+        </Box>
 
-        <Typography variant="body1" color="text.secondary" mb={4}>
-          Revise e aprove as informações técnicas dos materiais
-        </Typography>
+        {/* Master-Detail Layout */}
+        <Box sx={{ display: "flex", gap: 2, flex: 1, minHeight: 0 }}>
+          {/* MASTER - Lista de Materiais */}
+          <Card sx={{ width: 380, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            <CardContent sx={{ pb: 1 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+                <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: "1.1rem" }}>
+                  <Engineering color="primary" />
+                  Materiais
+                </Typography>
+                <Chip
+                  label={`${technicalMaterials.filter((m) => m.status === "pending").length}`}
+                  color="warning"
+                  size="small"
+                />
+              </Box>
 
-        <Card>
-          <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" component="h2">
-                Materiais para Revisão Técnica
-              </Typography>
-              <Chip
-                label={`${technicalMaterials.filter((m) => m.status === "pending").length} Pendentes`}
-                color="warning"
-                variant="outlined"
-              />
+              {/* Filtros Compactos */}
+              <Stack spacing={1.5} mb={1.5}>
+                <TextField
+                  size="small"
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: <Search sx={{ mr: 1, color: "text.secondary", fontSize: 18 }} />,
+                  }}
+                  sx={{ "& .MuiInputBase-input": { fontSize: "0.875rem" } }}
+                />
+
+                <Box display="flex" gap={0.5}>
+                  <Button
+                    size="small"
+                    variant={statusFilter === "all" ? "contained" : "outlined"}
+                    onClick={() => setStatusFilter("all")}
+                    sx={{ fontSize: "0.75rem", minWidth: "auto", px: 1 }}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={statusFilter === "pending" ? "contained" : "outlined"}
+                    color="warning"
+                    onClick={() => setStatusFilter("pending")}
+                    sx={{ fontSize: "0.75rem", minWidth: "auto", px: 1 }}
+                  >
+                    Pendentes
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={statusFilter === "approved" ? "contained" : "outlined"}
+                    color="success"
+                    onClick={() => setStatusFilter("approved")}
+                    sx={{ fontSize: "0.75rem", minWidth: "auto", px: 1 }}
+                  >
+                    Aprovados
+                  </Button>
+                </Box>
+              </Stack>
+            </CardContent>
+
+            {/* Lista de Materiais */}
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              <List dense sx={{ py: 0 }}>
+                {paginatedMaterials.map((material) => (
+                  <ListItem key={material.id} disablePadding>
+                    <ListItemButton
+                      selected={selectedMaterial?.id === material.id}
+                      onClick={() => handleSelectMaterial(material)}
+                      sx={{
+                        py: 1,
+                        px: 2,
+                        "&.Mui-selected": {
+                          bgcolor: "primary.50",
+                          borderRight: "3px solid",
+                          borderRightColor: "primary.main",
+                        },
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <Avatar sx={{ width: 28, height: 28, fontSize: "0.875rem" }}>
+                          {getCategoryIcon(material.categoria)}
+                        </Avatar>
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" fontWeight="medium" noWrap sx={{ fontSize: "0.875rem" }}>
+                            {material.nome}
+                          </Typography>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" fontFamily="monospace" display="block">
+                              {material.codigo}
+                            </Typography>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mt={0.5}>
+                              <Chip
+                                label={material.categoria}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: "0.65rem", height: 18 }}
+                              />
+                              <Chip
+                                label={getStatusText(material.status)}
+                                color={getStatusColor(material.status)}
+                                size="small"
+                                sx={{ fontSize: "0.65rem", height: 18 }}
+                              />
+                            </Box>
+                          </Box>
+                        }
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
             </Box>
 
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <strong>Código</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Nome do Material</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Categoria</strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>Status</strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>Características</strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>Ações</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedMaterials.map((material) => (
-                    <TableRow key={material.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontFamily="monospace">
-                          {material.codigo}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {material.nome}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={material.categoria} size="small" variant="outlined" />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={getStatusText(material.status)}
-                          color={getStatusColor(material.status)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body2">{material.caracteristicas.length} características</Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Visualizar informações técnicas">
-                          <IconButton size="small" color="primary" onClick={() => handleViewDetails(material)}>
-                            <Visibility />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
+            {/* Paginação Compacta */}
+            <Divider />
             <TablePagination
-              rowsPerPageOptions={[25, 50, 100]}
               component="div"
-              count={technicalMaterials.length}
+              count={filteredMaterials.length}
               rowsPerPage={rowsPerPage}
               page={page}
               onPageChange={handleChangePage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Itens por página:"
-              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+              rowsPerPageOptions={[10, 25, 50]}
+              labelRowsPerPage=""
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+              sx={{
+                minHeight: "auto",
+                "& .MuiTablePagination-toolbar": { minHeight: 40, px: 1 },
+                "& .MuiTablePagination-selectLabel": { fontSize: "0.75rem" },
+                "& .MuiTablePagination-displayedRows": { fontSize: "0.75rem" },
+              }}
             />
-          </CardContent>
-        </Card>
+          </Card>
 
-        {/* Dialog Principal */}
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xl" fullWidth>
-          <DialogTitle>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <div>
-                <Typography variant="h5" fontWeight="bold">
-                  {selectedMaterial?.nome}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Código: {selectedMaterial?.codigo} | Categoria: {selectedMaterial?.categoria}
-                </Typography>
-              </div>
-              <Chip
-                label={getStatusText(selectedMaterial?.status)}
-                color={getStatusColor(selectedMaterial?.status)}
-                size="large"
-              />
-            </Box>
-          </DialogTitle>
-
-          <DialogContent dividers sx={{ p: 0 }}>
-            {selectedMaterial && (
-              <Box>
-                {/* Header */}
-                <Box
-                  sx={{
-                    p: 3,
-                    background: "linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%)",
-                    color: "white",
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Description /> Avalie as Características Técnicas
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={3}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <ThumbUp sx={{ color: "#66bb6a" }} />
-                        <Typography variant="body2">
-                          <strong>Concordar:</strong> Valor correto
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <ThumbDown sx={{ color: "#ef5350" }} />
-                        <Typography variant="body2">
-                          <strong>Não Concordar:</strong> Propor valor
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <AttachFile sx={{ color: "#ffa726" }} />
-                        <Typography variant="body2">
-                          <strong>Anexar:</strong> Para propostas
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <FileCopy sx={{ color: "#ab47bc" }} />
-                        <Typography variant="body2">
-                          <strong>Replicar:</strong> Reutilizar arquivos
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                {/* Progresso da Validação */}
-                <Box sx={{ p: 3, bgcolor: "#f8f9fa" }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="h6" color="primary.main">
-                      📊 Progresso da Avaliação
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {validatedCharacteristics} de {totalCharacteristics} características
-                    </Typography>
+          {/* DETAIL - Características do Material */}
+          <Card sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {selectedMaterial ? (
+              <>
+                {/* Header Compacto */}
+                <CardContent sx={{ pb: 1 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="h5" fontWeight="bold" gutterBottom noWrap>
+                        {selectedMaterial.nome}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {selectedMaterial.codigo} • {selectedMaterial.categoria}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getStatusText(selectedMaterial.status)}
+                      color={getStatusColor(selectedMaterial.status)}
+                      size="medium"
+                    />
                   </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(validatedCharacteristics / totalCharacteristics) * 100}
-                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    {Math.round((validatedCharacteristics / totalCharacteristics) * 100)}% concluído
-                  </Typography>
-                </Box>
 
-                {/* Características */}
-                <Box sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1 }}>
-                    <CheckCircle color="primary" />
-                    Características Técnicas ({selectedMaterial.caracteristicas.length} itens)
+                  {/* Progresso Compacto */}
+                  <Box sx={{ p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1, mb: 1.5 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                      <Typography variant="body2" color="primary.main" fontWeight="bold">
+                        📊 Progresso: {validatedCharacteristics}/{totalCharacteristics}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {Math.round((validatedCharacteristics / totalCharacteristics) * 100)}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(validatedCharacteristics / totalCharacteristics) * 100}
+                      sx={{ height: 4, borderRadius: 2 }}
+                    />
+                  </Box>
+
+                  {/* Instruções Compactas */}
+                  <Box sx={{ p: 1, bgcolor: "primary.50", borderRadius: 1 }}>
+                    <Grid container spacing={1}>
+                      <Grid item xs={3}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <ThumbUp sx={{ color: "success.main", fontSize: 14 }} />
+                          <Typography variant="caption">Concordar</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <ThumbDown sx={{ color: "error.main", fontSize: 14 }} />
+                          <Typography variant="caption">Propor</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <AttachFile sx={{ color: "warning.main", fontSize: 14 }} />
+                          <Typography variant="caption">Anexar</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <ContentCopy sx={{ color: "secondary.main", fontSize: 14 }} />
+                          <Typography variant="caption">Replicar</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </CardContent>
+
+                <Divider />
+
+                {/* Lista de Características Compacta */}
+                <Box sx={{ flex: 1, overflow: "auto", p: 1.5 }}>
+                  <Typography
+                    variant="subtitle1"
+                    gutterBottom
+                    sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+                  >
+                    <Assignment color="primary" sx={{ fontSize: 20 }} />
+                    Características ({selectedMaterial.caracteristicas.length})
                   </Typography>
 
-                  <Grid container spacing={3}>
+                  <Grid container spacing={1.5}>
                     {selectedMaterial.caracteristicas.map((char, index) => {
                       const agreement = agreements[char.nome]
                       const hasProposal = proposedValues[char.nome]
                       const hasAttachment = attachments[char.nome]?.length > 0
 
                       return (
-                        <Grid item xs={12} md={6} lg={4} key={index}>
+                        <Grid item xs={12} xl={6} key={index}>
                           <Card
                             variant="outlined"
                             sx={{
-                              height: "100%",
-                              transition: "all 0.3s ease",
+                              transition: "all 0.2s ease",
                               border:
                                 agreement === "agree"
                                   ? "2px solid #66bb6a"
@@ -492,135 +554,119 @@ export default function InformacoesTecnicas() {
                                   : agreement === "disagree"
                                     ? "#ffebee"
                                     : "background.paper",
-                              "&:hover": {
-                                boxShadow: 4,
-                                transform: "translateY(-2px)",
-                              },
+                              "&:hover": { boxShadow: 1 },
                             }}
                           >
-                            <CardContent>
-                              <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary.main">
+                            <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                              <Typography variant="body2" fontWeight="bold" gutterBottom color="primary.main" noWrap>
                                 {char.nome}
                               </Typography>
 
-                              {/* Valor Atual */}
+                              {/* Valor Atual Compacto */}
                               <Box
                                 sx={{
-                                  mb: 3,
-                                  p: 2,
+                                  mb: 1.5,
+                                  p: 1,
                                   background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
-                                  borderRadius: 2,
+                                  borderRadius: 1,
                                   textAlign: "center",
                                 }}
                               >
-                                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                                  💎 Valor Atual
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  💎 Atual
                                 </Typography>
-                                <Typography variant="h5" fontWeight="bold" color="primary.main">
+                                <Typography variant="subtitle1" fontWeight="bold" color="primary.main">
                                   {char.valor}
                                 </Typography>
                                 {char.unidade && (
-                                  <Typography variant="body2" color="text.secondary">
+                                  <Typography variant="caption" color="text.secondary">
                                     {char.unidade}
                                   </Typography>
                                 )}
                               </Box>
 
-                              {/* Botões de Decisão */}
-                              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                              {/* Botões Compactos */}
+                              <Stack direction="row" spacing={0.5} sx={{ mb: 1.5 }}>
                                 <Button
                                   variant={agreement === "agree" ? "contained" : "outlined"}
                                   color="success"
-                                  startIcon={<ThumbUp />}
+                                  size="small"
+                                  startIcon={<ThumbUp sx={{ fontSize: 14 }} />}
                                   onClick={() => handleAgree(char.nome)}
-                                  sx={{
-                                    flex: 1,
-                                    py: 1.5,
-                                    fontWeight: "bold",
-                                    borderRadius: 2,
-                                    "&:hover": {
-                                      transform: "scale(1.02)",
-                                    },
-                                  }}
+                                  sx={{ flex: 1, fontSize: "0.7rem", py: 0.5 }}
                                 >
-                                  Concordo
+                                  OK
                                 </Button>
                                 <Button
                                   variant={agreement === "disagree" ? "contained" : "outlined"}
                                   color="error"
-                                  startIcon={<ThumbDown />}
+                                  size="small"
+                                  startIcon={<ThumbDown sx={{ fontSize: 14 }} />}
                                   onClick={() => handleDisagree(char.nome)}
-                                  sx={{
-                                    flex: 1,
-                                    py: 1.5,
-                                    fontWeight: "bold",
-                                    borderRadius: 2,
-                                    "&:hover": {
-                                      transform: "scale(1.02)",
-                                    },
-                                  }}
+                                  sx={{ flex: 1, fontSize: "0.7rem", py: 0.5 }}
                                 >
-                                  Não Concordo
+                                  Não
                                 </Button>
                               </Stack>
 
-                              {/* Campo de Proposta */}
+                              {/* Campo de Proposta Compacto */}
                               {agreement === "disagree" && (
                                 <Box
                                   sx={{
-                                    p: 2,
+                                    p: 1,
                                     bgcolor: "#fff3e0",
-                                    borderRadius: 2,
+                                    borderRadius: 1,
                                     border: "1px dashed #ff9800",
-                                    mb: 2,
+                                    mb: 1,
                                   }}
                                 >
-                                  <Typography variant="body2" color="#e65100" gutterBottom fontWeight="bold">
-                                    💡 Propor Novo Valor:
+                                  <Typography
+                                    variant="caption"
+                                    color="#e65100"
+                                    fontWeight="bold"
+                                    display="block"
+                                    gutterBottom
+                                  >
+                                    💡 Novo Valor:
                                   </Typography>
                                   <TextField
                                     fullWidth
                                     size="small"
-                                    placeholder={`Ex: ${char.valor}`}
+                                    placeholder={char.valor}
                                     value={proposedValues[char.nome] || ""}
                                     onChange={(e) => handleProposedValueChange(char.nome, e.target.value)}
                                     InputProps={{
                                       endAdornment: char.unidade && (
-                                        <Typography variant="body2" color="text.secondary">
+                                        <Typography variant="caption" color="text.secondary">
                                           {char.unidade}
                                         </Typography>
                                       ),
-                                      sx: { bgcolor: "white", borderRadius: 1 },
+                                      sx: { bgcolor: "white", fontSize: "0.8rem" },
                                     }}
                                   />
 
-                                  {/* Seção de Anexo */}
+                                  {/* Anexo Compacto */}
                                   {hasProposal && (
-                                    <Box sx={{ mt: 2 }}>
-                                      <Typography variant="body2" color="#e65100" gutterBottom fontWeight="bold">
-                                        📎 Anexar Documento Justificativo:
-                                      </Typography>
+                                    <Box sx={{ mt: 1 }}>
                                       <Button
                                         variant="outlined"
-                                        startIcon={<CloudUpload />}
+                                        startIcon={<CloudUpload sx={{ fontSize: 14 }} />}
                                         size="small"
                                         fullWidth
                                         onClick={() => handleOpenAttachmentModal(char.nome)}
                                         sx={{
                                           color: "#ff9800",
                                           borderColor: "#ff9800",
-                                          "&:hover": {
-                                            bgcolor: "#fff3e0",
-                                            borderColor: "#f57c00",
-                                          },
+                                          fontSize: "0.7rem",
+                                          py: 0.5,
                                         }}
                                       >
-                                        Anexar/Reutilizar Arquivo
+                                        Anexar
                                       </Button>
 
-                                      {/* Lista de anexos desta característica */}
+                                      {/* Lista de anexos compacta */}
                                       {hasAttachment && (
-                                        <Box sx={{ mt: 1 }}>
+                                        <Box sx={{ mt: 0.5 }}>
                                           {attachments[char.nome].map((file) => (
                                             <Box
                                               key={file.id}
@@ -628,31 +674,34 @@ export default function InformacoesTecnicas() {
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "space-between",
-                                                p: 1,
+                                                p: 0.5,
                                                 bgcolor: "white",
-                                                borderRadius: 1,
+                                                borderRadius: 0.5,
                                                 mt: 0.5,
                                               }}
                                             >
-                                              <Box display="flex" alignItems="center">
-                                                <AttachFile sx={{ mr: 1, color: "#ff9800", fontSize: 16 }} />
-                                                <Typography variant="caption">{file.name}</Typography>
+                                              <Box display="flex" alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+                                                <AttachFile sx={{ mr: 0.5, color: "#ff9800", fontSize: 12 }} />
+                                                <Typography variant="caption" noWrap>
+                                                  {file.name}
+                                                </Typography>
                                               </Box>
                                               <Box>
                                                 <IconButton
                                                   size="small"
                                                   color="secondary"
                                                   onClick={() => handleOpenReplicationModal(file, char.nome)}
-                                                  title="Replicar para outras características"
+                                                  sx={{ p: 0.25 }}
                                                 >
-                                                  <ContentCopy fontSize="small" />
+                                                  <ContentCopy sx={{ fontSize: 12 }} />
                                                 </IconButton>
                                                 <IconButton
                                                   size="small"
                                                   color="error"
                                                   onClick={() => handleRemoveAttachment(char.nome, file.id)}
+                                                  sx={{ p: 0.25 }}
                                                 >
-                                                  <Delete fontSize="small" />
+                                                  <Delete sx={{ fontSize: 12 }} />
                                                 </IconButton>
                                               </Box>
                                             </Box>
@@ -664,20 +713,28 @@ export default function InformacoesTecnicas() {
                                 </Box>
                               )}
 
-                              {/* Status Visual */}
+                              {/* Status Compacto */}
                               {agreement && (
                                 <Alert
                                   severity={agreement === "agree" ? "success" : "warning"}
-                                  sx={{ mt: 1 }}
-                                  icon={agreement === "agree" ? <CheckCircle /> : <Warning />}
+                                  sx={{ py: 0.5 }}
+                                  icon={
+                                    agreement === "agree" ? (
+                                      <CheckCircle sx={{ fontSize: 16 }} />
+                                    ) : (
+                                      <Warning sx={{ fontSize: 16 }} />
+                                    )
+                                  }
                                 >
-                                  {agreement === "agree"
-                                    ? "✅ Valor aprovado!"
-                                    : hasProposal
-                                      ? hasAttachment
-                                        ? `✅ Proposta: ${proposedValues[char.nome]} ${char.unidade} (com anexo)`
-                                        : `⚠️ Proposta: ${proposedValues[char.nome]} ${char.unidade} (anexo necessário)`
-                                      : "⚠️ Aguardando proposta de valor"}
+                                  <Typography variant="caption">
+                                    {agreement === "agree"
+                                      ? "✅ Aprovado"
+                                      : hasProposal
+                                        ? hasAttachment
+                                          ? `✅ ${proposedValues[char.nome]} ${char.unidade}`
+                                          : `⚠️ ${proposedValues[char.nome]} ${char.unidade} (anexo)`
+                                        : "⚠️ Aguardando valor"}
+                                  </Typography>
                                 </Alert>
                               )}
                             </CardContent>
@@ -688,79 +745,63 @@ export default function InformacoesTecnicas() {
                   </Grid>
                 </Box>
 
-                {/* Alerta para características que precisam de anexo */}
-                {characteristicsNeedingAttachment.length > 0 && (
-                  <Box sx={{ p: 3, bgcolor: "#fff3e0" }}>
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        📎 Atenção: {characteristicsNeedingAttachment.length} característica(s) com proposta precisam de
-                        anexo:
+                {/* Footer Compacto */}
+                <Divider />
+                <CardContent sx={{ py: 1.5 }}>
+                  {/* Alerta compacto */}
+                  {characteristicsNeedingAttachment.length > 0 && (
+                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.5 }}>
+                      <Typography variant="caption" fontWeight="bold">
+                        📎 {characteristicsNeedingAttachment.length} característica(s) precisam de anexo
                       </Typography>
-                      <Box sx={{ mt: 1 }}>
-                        {characteristicsNeedingAttachment.map((char) => (
-                          <Chip key={char} label={char} size="small" color="warning" sx={{ mr: 0.5, mb: 0.5 }} />
-                        ))}
-                      </Box>
                     </Alert>
+                  )}
+
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="caption" color="text.secondary">
+                      📊 {validatedCharacteristics}/{totalCharacteristics} • {Object.keys(proposedValues).length}{" "}
+                      propostas
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmitProposal}
+                      disabled={!allValidated || characteristicsNeedingAttachment.length > 0}
+                      size="small"
+                      sx={{ minWidth: 140, fontSize: "0.8rem" }}
+                    >
+                      {!allValidated
+                        ? `⏳ Avaliar (${totalCharacteristics - validatedCharacteristics})`
+                        : characteristicsNeedingAttachment.length > 0
+                          ? `📎 Anexar (${characteristicsNeedingAttachment.length})`
+                          : "💾 Enviar"}
+                    </Button>
                   </Box>
-                )}
+                </CardContent>
+              </>
+            ) : (
+              // Estado vazio compacto
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  textAlign: "center",
+                  p: 3,
+                }}
+              >
+                <Engineering sx={{ fontSize: 60, color: "text.disabled", mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  Selecione um Material
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Escolha um material da lista para avaliar suas características técnicas.
+                </Typography>
               </Box>
             )}
-          </DialogContent>
-
-          <DialogActions
-            sx={{
-              p: 3,
-              background: "linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%)",
-              gap: 2,
-            }}
-          >
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" color="white" fontWeight="bold">
-                📊 {validatedCharacteristics}/{totalCharacteristics} avaliadas • {Object.keys(proposedValues).length}{" "}
-                propostas • {characteristicsNeedingAttachment.length} precisam anexo
-              </Typography>
-            </Box>
-            <Button
-              onClick={() => setDialogOpen(false)}
-              size="large"
-              sx={{
-                color: "white",
-                borderColor: "white",
-                fontWeight: "bold",
-              }}
-              variant="outlined"
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSubmitProposal}
-              disabled={!allValidated || characteristicsNeedingAttachment.length > 0}
-              size="large"
-              sx={{
-                minWidth: 180,
-                bgcolor: "white",
-                color: "primary.main",
-                fontWeight: "bold",
-                "&:hover": {
-                  bgcolor: "grey.100",
-                  transform: "scale(1.02)",
-                },
-                "&:disabled": {
-                  bgcolor: "grey.300",
-                  color: "grey.500",
-                },
-              }}
-            >
-              {!allValidated
-                ? `⏳ Avaliar Todas (${totalCharacteristics - validatedCharacteristics} restantes)`
-                : characteristicsNeedingAttachment.length > 0
-                  ? `📎 Anexar Documentos (${characteristicsNeedingAttachment.length})`
-                  : "💾 Enviar Avaliação"}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Card>
+        </Box>
 
         {/* Modal de Seleção de Anexo */}
         <Dialog open={attachmentModalOpen} onClose={() => setAttachmentModalOpen(false)} maxWidth="md" fullWidth>
